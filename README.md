@@ -1,2 +1,1 @@
-test CI
-![workflow](https://github.com/<UserName>/<RepositoryName>/actions/workflows/main.yml/badge.svg)
+[![LICENSE](https://img.shields.io/github/license/twinky945/devops.svg?style=flat-square)](https://github.com/twinky945/devops/blob/master/LICENSE)
