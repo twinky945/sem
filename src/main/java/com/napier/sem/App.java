@@ -2,61 +2,62 @@ package com.napier.sem;
 
 import java.sql.*;
 
-public class App
-{
-    public static void main(String[] args)
-    {
-        try
-        {
-            // Load Database driver
+public class App {
+
+    /** Соединение с MySQL */
+    private Connection con = null;
+
+    /** Подключение к БД с ретраями */
+    public void connect() {
+        try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-        }
-        catch (ClassNotFoundException e)
-        {
+        } catch (ClassNotFoundException e) {
             System.out.println("Could not load SQL driver");
             System.exit(-1);
         }
 
-        // Connection to the database
-        Connection con = null;
-        int retries = 100;
-        for (int i = 0; i < retries; ++i)
-        {
+        // 60 попыток с паузой 5 сек (~5 минут)
+        for (int i = 1; i <= 60; i++) {
             System.out.println("Connecting to database...");
-            try
-            {
-                // Wait a bit for db to start
-                Thread.sleep(30000);
-                // Connect to database
-                con = DriverManager.getConnection("jdbc:mysql://db:3306/employees?allowPublicKeyRetrieval=true&useSSL=false", "root", "example");
+            try {
+                con = DriverManager.getConnection(
+                        // если оба сервиса в docker-compose:
+                        "jdbc:mysql://db:3306/employees?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+                        "root", "example"
+                );
                 System.out.println("Successfully connected");
-                // Wait a bit
-                Thread.sleep(10000);
-                // Exit for loop
-                break;
-            }
-            catch (SQLException sqle)
-            {
-                System.out.println("Failed to connect to database attempt " + Integer.toString(i));
-                System.out.println(sqle.getMessage());
-            }
-            catch (InterruptedException ie)
-            {
-                System.out.println("Thread interrupted? Should not happen.");
+                return;
+            } catch (SQLException e) {
+                System.out.printf("Failed to connect attempt %d: %s (SQLState=%s, code=%d)%n",
+                        i, e.getMessage(), e.getSQLState(), e.getErrorCode());
+                try { Thread.sleep(5000); } catch (InterruptedException ignored) {}
             }
         }
+        System.out.println("Giving up: database not reachable.");
+    }
 
-        if (con != null)
-        {
-            try
-            {
-                // Close connection
+    /** Отключение от БД */
+    public void disconnect() {
+        if (con != null) {
+            try {
                 con.close();
-            }
-            catch (Exception e)
-            {
+            } catch (SQLException e) {
                 System.out.println("Error closing connection to database");
+            } finally {
+                con = null;
             }
         }
+    }
+
+    public static void main(String[] args)
+    {
+        // Create new Application
+        App a = new App();
+
+        // Connect to database
+        a.connect();
+
+        // Disconnect from database
+        a.disconnect();
     }
 }
